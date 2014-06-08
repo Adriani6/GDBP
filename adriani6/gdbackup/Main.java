@@ -3,14 +3,20 @@ package adriani6.gdbackup;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import adriani6.gdbackup.zipUtil.AppZip;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
@@ -26,9 +32,13 @@ import com.google.api.services.drive.model.File;
 
 public class Main extends JavaPlugin implements CommandExecutor{
 	
+	protected static String path; 
 	String response;
-	 private static String CLIENT_ID = "YOUR_CLIENT_ID";
-	  private static String CLIENT_SECRET = "YOUR_CLIENT_SECRET";
+	public Main plugin;
+	static String filename;
+	static String client_id;
+	static String client_secret;
+	
 
 	  private static String REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob";
 	  
@@ -38,18 +48,38 @@ public class Main extends JavaPlugin implements CommandExecutor{
 	    JsonFactory jsonFactory = new JacksonFactory();
 	
 	public void onEnable(){
-		
+		defaultConfig();
+		client_id = getConfig().getString("CLIENT_ID");
+		client_secret = getConfig().getString("CLIENT_SECRET");
 	}
+	
+    public void defaultConfig(){
+    	getConfig().addDefault("CLIENT_ID", "YOUR_CLIENT_ID");
+    	getConfig().addDefault("CLIENT_SECRET", "YOUR_CLIENT_SECRET");
+        getConfig().options().copyDefaults(true); 
+        saveConfig();
+    }
 	
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-		if (cmd.getName().equalsIgnoreCase("basic")) {
+		if (cmd.getName().equalsIgnoreCase("gdb")) {
 			if(args[0].equalsIgnoreCase("start")){
-
+		    	
+		    	DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm");
+		    	Date date = new Date();
+		    	filename = dateFormat.format(date).toString();
+				path = getServer().getWorldContainer().getAbsolutePath().toString();
+					try {
+						AppZip.main(args);
+						sender.sendMessage("File Zipped.");
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 
 				   
 				    flow = new GoogleAuthorizationCodeFlow.Builder(
-				        httpTransport, jsonFactory, CLIENT_ID, CLIENT_SECRET, Arrays.asList(DriveScopes.DRIVE))
+				        httpTransport, jsonFactory, client_id, client_secret, Arrays.asList(DriveScopes.DRIVE))
 				        .setAccessType("online")
 				        .setApprovalPrompt("auto").build();
 				    
@@ -83,12 +113,12 @@ public class Main extends JavaPlugin implements CommandExecutor{
 
 			    //Insert a file  
 			    File body = new File();
-			    body.setTitle("My document");
-			    body.setDescription("A test document");
-			    body.setMimeType("text/plain");
+			    body.setTitle(filename);
+			    body.setDescription("GoogleBackUp Plugin");
+			    body.setMimeType("application/zip");
 			    
-			    java.io.File fileContent = new java.io.File("document.txt");
-			    FileContent mediaContent = new FileContent("text/plain", fileContent);
+			    java.io.File fileContent = new java.io.File("GoogleBackUp/" +filename+".zip");
+			    FileContent mediaContent = new FileContent("application/zip", fileContent);
 
 			    File file;
 				try {
@@ -97,8 +127,10 @@ public class Main extends JavaPlugin implements CommandExecutor{
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-			    sender.sendMessage("File uploaded successfully ");
+			    sender.sendMessage(ChatColor.GREEN + "File uploaded successfully ");
 				
+			}else if(args[0].equalsIgnoreCase("test")){
+				sender.sendMessage(getServer().getWorldContainer().getAbsolutePath().toString());
 			}
 			
 			
